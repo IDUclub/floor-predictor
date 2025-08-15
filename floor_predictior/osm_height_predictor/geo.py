@@ -135,7 +135,7 @@ class SpatialNeighborhoodAnalyzer:
         self.df = df
         return self.df
     
-    def generate_spatial_lags_and_morans(gdf, feature_columns, k_neighbors=10, plot=True):
+    def generate_spatial_lags_and_morans(self, gdf, feature_columns, k_neighbors=10, plot=True):
         """
         Генерирует spatial-lag признаки и считает Moran's I/LISA для заданных признаков.
         Рисует scatterplot глобального Moran’s I и карту LISA кластеров для каждого признака.
