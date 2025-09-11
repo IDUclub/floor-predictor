@@ -130,20 +130,6 @@ class RoadProcessor:
     joined_buildings: dict[str, gpd.GeoDataFrame] = field(default_factory=dict, init=False)
     backup_data: pd.DataFrame | None = field(default=None, init=False)
 
-    def __post_init__(self):
-        if self.local_crs is None:
-            if self.buildings.crs and self.buildings.crs.is_projected:
-                epsg_code = self.buildings.crs.to_epsg()
-                if epsg_code is not None:
-                    self.local_crs = epsg_code
-                else:
-                    self.local_crs = 3857
-            else:
-                self.local_crs = 3857
-        else:
-            if not isinstance(self.local_crs, int):
-                raise ValueError("local_crs must be an integer EPSG code.")
-
     def load_roads(self) -> gpd.GeoDataFrame:
         """
         Load road data (lines only) within the specified bounds.
@@ -199,8 +185,7 @@ class RoadProcessor:
 
         # гарантируем нужную СК
         b = self.buildings
-        if b.crs is None or b.crs.to_epsg() != self.local_crs:
-            b = b.to_crs(self.local_crs)
+        b.to_crs(self.local_crs, inplace=True)
 
         # базовые столбцы, которые протаскиваем (если они есть)
         base_keep = [c for c in ["building", "landuse", "land_building"] + ALL_TAGS + ID_GEOMETRY if c in b.columns]
@@ -274,6 +259,7 @@ class RoadProcessor:
         keys = list(self.joined_buildings.keys())
         base_key = keys[0]  # первый радиус как базовый набор строк
         base = self.joined_buildings[base_key].copy()
+        base.to_crs(self.local_crs, inplace=True)
 
         # площадь полигона (в метрах^2)
         base["area"] = base.geometry.area
