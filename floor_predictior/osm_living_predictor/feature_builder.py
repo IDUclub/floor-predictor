@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from .constants import ALL_TAGS
+
 
 class FeatureBuilder:
     """
@@ -168,7 +170,7 @@ class FeatureBuilder:
         df = self.df_base.copy()
 
         # - 'all_tag_keys', 'all_tags' — служебные словари/списки тегов, модели не нужны
-        to_drop = [c for c in ["all_tag_keys", "all_tags"] if c in df.columns]
+        to_drop = [c for c in ALL_TAGS if c in df.columns]
         if to_drop:
             df = df.drop(columns=to_drop)
 

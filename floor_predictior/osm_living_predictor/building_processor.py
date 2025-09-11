@@ -3,6 +3,8 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 
+from .constants import POLYGONS, ALL_TAGS, ID_GEOMETRY
+
 class BuildingProcessor:
     """
     A class for processing building and landuse data from OpenStreetMap.
@@ -29,7 +31,7 @@ class BuildingProcessor:
     def __init__(
         self,
         bounds,
-        local_crs: int = 3857,
+        local_crs: int | None = None,
         requests_timeout: int = 180,             # ← больше времени на запрос
         overpass_endpoint: str | None = None,    # ← можно указать альтернативный эндпоинт
     ):
@@ -56,7 +58,7 @@ class BuildingProcessor:
         """Загружает здания по тегу 'building' и подготавливает их."""
         self._configure_osmnx()
         gdf = ox.features_from_polygon(self.bounds, {"building": True})
-        gdf = gdf[gdf.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
+        gdf = gdf[gdf.geom_type.isin(POLYGONS)].copy()
         gdf.reset_index(inplace=True)
 
         # Собираем словари всех тегов кроме системных
@@ -68,15 +70,17 @@ class BuildingProcessor:
         gdf["all_tag_keys"] = gdf["all_tags"].apply(list)
 
         gdf["building"] = gdf["building"].fillna("")
-        gdf = gdf[["id", "building", "geometry", "all_tag_keys", "all_tags"]]
+        gdf = gdf[["building"] + ALL_TAGS + ID_GEOMETRY]
 
         self.buildings = gdf
+        self.local_crs = gdf.estimate_utm_crs()
+
         return gdf
 
     def load_landuse(self) -> gpd.GeoDataFrame:
         """Загружает landuse полигоны и классифицирует non_res."""
         lu = ox.features_from_polygon(self.bounds, {"landuse": True})
-        lu = lu[lu.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
+        lu = lu[lu.geom_type.isin(POLYGONS)].copy()
         lu.reset_index(drop=True, inplace=True)
 
         non_res = {

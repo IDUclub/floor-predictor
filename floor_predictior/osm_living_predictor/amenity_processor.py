@@ -7,6 +7,7 @@ import geopandas as gpd
 import osmnx as ox
 import jenkspy
 from dataclasses import dataclass, field
+from .constants import POLYGONS
 
 DEFAULT_RADII = [30, 60, 90]
 
@@ -88,7 +89,7 @@ class AmenityProcessor:
 
         a = self.amenities
         # берём только площадные парковки (Point нам тут не нужен)
-        parking = a[(a["amenity_key"].isin(["parking", "parking_space"])) & a.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
+        parking = a[(a["amenity_key"].isin(["parking", "parking_space"])) & a.geom_type.isin(POLYGONS)].copy()
         if parking.empty:
             # создаём пустой каркас, downstream код обработает
             parking = gpd.GeoDataFrame({"amenity_key": [], "geometry": []}, geometry="geometry", crs=a.crs)

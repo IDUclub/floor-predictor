@@ -9,6 +9,8 @@ import geopandas as gpd
 import osmnx as ox
 from shapely.geometry import base as shp_base
 
+from .constants import ALL_TAGS, ID_GEOMETRY
+
 
 RoadClass = Literal["residential", "primary", "secondary_tertiary", "motorway_trunk", "service"]
 
@@ -111,7 +113,7 @@ class RoadProcessor:
     Attributes:
         bounds (shp_base.BaseGeometry): The geographic boundary for data processing.
         buildings (gpd.GeoDataFrame): The building data to be processed.
-        local_crs (int): The local coordinate reference system (default: 3857).
+        local_crs (int): The local coordinate reference system (default: inferred from buildings or 3857).
         radius_list (Iterable[int]): List of radii for buffering roads (default: (30, 60, 90)).
         roads (gpd.GeoDataFrame | None): Processed road data (default: None).
         buffered_roads (dict[str, gpd.GeoDataFrame]): Dictionary of buffered roads by radius.
@@ -120,13 +122,27 @@ class RoadProcessor:
     """
     bounds: shp_base.BaseGeometry
     buildings: gpd.GeoDataFrame
-    local_crs: int = 3857
-    radius_list: Iterable[int] = (30, 60, 90)
+    local_crs: int | None = None
+    radius_list: Iterable[int] = field(default=(30, 60, 90))
 
     roads: gpd.GeoDataFrame | None = field(default=None, init=False)
     buffered_roads: dict[str, gpd.GeoDataFrame] = field(default_factory=dict, init=False)
     joined_buildings: dict[str, gpd.GeoDataFrame] = field(default_factory=dict, init=False)
     backup_data: pd.DataFrame | None = field(default=None, init=False)
+
+    def __post_init__(self):
+        if self.local_crs is None:
+            if self.buildings.crs and self.buildings.crs.is_projected:
+                epsg_code = self.buildings.crs.to_epsg()
+                if epsg_code is not None:
+                    self.local_crs = epsg_code
+                else:
+                    self.local_crs = 3857
+            else:
+                self.local_crs = 3857
+        else:
+            if not isinstance(self.local_crs, int):
+                raise ValueError("local_crs must be an integer EPSG code.")
 
     def load_roads(self) -> gpd.GeoDataFrame:
         """
@@ -142,7 +158,7 @@ class RoadProcessor:
         r = r.reset_index(drop=False)
         r = r.to_crs(self.local_crs)
         # оставим только полезные колонки, если есть
-        keep = [c for c in ("id", "osmid", "highway", "geometry") if c in r.columns]
+        keep = [c for c in ["osmid", "highway"] + ID_GEOMETRY if c in r.columns]
         if len(keep) < 2:
             keep = ["highway", "geometry"]
         self.roads = r[keep].copy()
@@ -187,10 +203,7 @@ class RoadProcessor:
             b = b.to_crs(self.local_crs)
 
         # базовые столбцы, которые протаскиваем (если они есть)
-        base_keep = [c for c in (
-            "geometry", "id", "building", "landuse", "land_building",
-            "all_tag_keys", "all_tags"
-        ) if c in b.columns]
+        base_keep = [c for c in ["building", "landuse", "land_building"] + ALL_TAGS + ID_GEOMETRY if c in b.columns]
 
         # «скелет» + собственный ключ строк
         base = b[base_keep].copy()
@@ -293,7 +306,7 @@ class RoadProcessor:
                 base[c] = self.joined_buildings[k][c].astype("int8")
 
         # финальная чистка, выброс служебных полей
-        drop_cols = [c for c in ("all_tag_keys", "all_tags") if c in base.columns]
+        drop_cols = [c for c in ALL_TAGS if c in base.columns]
         base = base.drop(columns=drop_cols)
 
         self.backup_data = gpd.GeoDataFrame(base, geometry="geometry", crs=self.local_crs)

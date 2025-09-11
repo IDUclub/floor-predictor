@@ -15,6 +15,8 @@ except Exception:  # fallback для старого shapely
 from shapely.ops import unary_union
 from shapely.geometry.base import BaseGeometry
 
+from .constants import POLYGONS
+
 
 @dataclass
 class BoundaryFetcher:
@@ -158,7 +160,7 @@ class BoundaryFetcher:
             raise ValueError("Returned geometries are empty/NaN")
 
         # Prefer (Multi)Polygon
-        polys = geoms[geoms.geom_type.isin(["Polygon", "MultiPolygon"])]
+        polys = geoms[geoms.geom_type.isin(POLYGONS)]
         if not polys.empty:
             # Select the largest by area (in meters)
             tmp = gpd.GeoSeries(polys, crs=gdf.crs).to_crs(3857)
