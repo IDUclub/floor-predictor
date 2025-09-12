@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .constants import ALL_TAGS
+from ..utils.constants import ALL_TAGS
 
 
 class FeatureBuilder:

@@ -3,7 +3,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 
-from .constants import POLYGONS, ALL_TAGS, ID_GEOMETRY
+from ..utils.constants import POLYGONS, ALL_TAGS, ID_GEOMETRY
 
 class BuildingProcessor:
     """

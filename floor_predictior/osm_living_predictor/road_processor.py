@@ -9,7 +9,7 @@ import geopandas as gpd
 import osmnx as ox
 from shapely.geometry import base as shp_base
 
-from .constants import ALL_TAGS, ID_GEOMETRY
+from ..utils.constants import ALL_TAGS, ID_GEOMETRY
 
 
 RoadClass = Literal["residential", "primary", "secondary_tertiary", "motorway_trunk", "service"]

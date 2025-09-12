@@ -15,7 +15,7 @@ except Exception:  # fallback для старого shapely
 from shapely.ops import unary_union
 from shapely.geometry.base import BaseGeometry
 
-from .constants import POLYGONS
+from ..utils.constants import POLYGONS
 
 
 @dataclass

@@ -11,11 +11,19 @@ import osmnx as ox
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
+from .constants import POLYGONS
+TAG_COLUMNS = ["osmid", "building", "building:use", "building:usage", "amenity", "building:levels"]
+
 # Правила разметки
 POS_BUILDING = {
+    "annexe",
+    "dormitory",
+    "farm",
+    "ger",
     "house",
     "apartments",
     "residential",
+    "stilt_house",
     "detached",
     "semidetached_house",
     "semidetached",
@@ -25,6 +33,7 @@ POS_BUILDING = {
     "flats",
     "static_caravan",
     "hut",
+    "hotel",
     "cabin",
 }
 NEG_BUILDING = {
@@ -185,10 +194,10 @@ class IsLivingAnnotator:
         """
         # Buildings
         b = ox.features_from_polygon(bounds, {"building": True})
-        b = b[b.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
+        b = b[b.geom_type.isin(POLYGONS)].copy()
         b = b.to_crs(self.local_crs)
         # safely keep only columns that actually exist
-        want_b = ["osmid", "building", "building:use", "building:usage", "amenity", "building:levels", "geometry"]
+        want_b = TAG_COLUMNS + ["geometry"]
         keep_b = [c for c in want_b if c in b.columns]
         if "geometry" not in keep_b:
             keep_b.append("geometry")
@@ -196,7 +205,7 @@ class IsLivingAnnotator:
 
         # Landuse
         lu = ox.features_from_polygon(bounds, {"landuse": True})
-        lu = lu[lu.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
+        lu = lu[lu.geom_type.isin(POLYGONS)].copy()
         lu = lu.to_crs(self.local_crs)
         keep_lu = [c for c in ("landuse", "geometry") if c in lu.columns]
         if "geometry" not in keep_lu:
@@ -230,7 +239,7 @@ class IsLivingAnnotator:
             return a.drop(columns="__idx")
 
         # available columns in osm_b
-        have_all = [c for c in ["osmid", "building", "building:use", "building:usage", "amenity", "building:levels", "geometry"] if c in osm_b.columns]
+        have_all = [c for c in TAG_COLUMNS + ["geometry"] if c in osm_b.columns]
 
         if self.match_strategy == "centroid_within":
             cent = a[["__idx", "geometry"]].copy()
@@ -240,7 +249,7 @@ class IsLivingAnnotator:
             best = pairs.drop_duplicates(subset="__idx")
             res = a.merge(best[["__idx", "index_right"]], on="__idx", how="left")
 
-            tag_cols = [c for c in ["osmid", "building", "building:use", "building:usage", "amenity", "building:levels"] if c in osm_b.columns]
+            tag_cols = [c for c in TAG_COLUMNS if c in osm_b.columns]
             # add only columns that DON'T exist in res to avoid overlap
             join_cols = [c for c in tag_cols if c not in res.columns]
             if join_cols:
@@ -250,7 +259,7 @@ class IsLivingAnnotator:
             #     res[c] = res[c].fillna(res["index_right"].map(osm_b[c]))
 
             # ensure missing columns exist with NA values
-            for c in ["osmid", "building", "building:use", "building:usage", "amenity", "building:levels"]:
+            for c in TAG_COLUMNS:
                 if c not in res.columns:
                     res[c] = pd.NA
             return res.drop(columns=["__idx", "index_right"])
@@ -279,7 +288,7 @@ class IsLivingAnnotator:
         best = best[best["__iou"] >= float(self.iou_threshold)]
 
         res = a.merge(best[["__idx", "index_right"]], on="__idx", how="left")
-        tag_cols = [c for c in ["osmid", "building", "building:use", "building:usage", "amenity", "building:levels"] if c in osm_b.columns]
+        tag_cols = [c for c in TAG_COLUMNS if c in osm_b.columns]
 
         # add only missing columns to avoid overlap
         join_cols = [c for c in tag_cols if c not in res.columns]
@@ -291,7 +300,7 @@ class IsLivingAnnotator:
         #     res[c] = res[c].fillna(res["index_right"].map(osm_b[c]))
 
         # ensure missing columns exist with NA values
-        for c in ["osmid", "building", "building:use", "building:usage", "amenity", "building:levels"]:
+        for c in TAG_COLUMNS:
             if c not in res.columns:
                 res[c] = pd.NA
 

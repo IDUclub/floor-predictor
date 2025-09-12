@@ -7,7 +7,7 @@ import geopandas as gpd
 import osmnx as ox
 import jenkspy
 from dataclasses import dataclass, field
-from .constants import POLYGONS
+from ..utils.constants import POLYGONS
 
 DEFAULT_RADII = [30, 60, 90]
 
