@@ -25,8 +25,7 @@ class BuildingPreprocessor:
 
     def filter_residential(self):
         # Отбор только жилых зданий и этажей > 2
-        self.df = self.df[self.df["is_living"] == 1].copy()
-        self.df = self.df[self.df["storey"] > 2].copy()
+        self.df = self.df[(self.df["is_living"] == 1) & (self.df["storey"] > 2)].copy()
         self.df.reset_index(drop=True, inplace=True)
 
     def get(self):
