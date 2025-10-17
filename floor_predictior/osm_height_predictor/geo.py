@@ -342,7 +342,7 @@ class StoreyModelTrainer:
 
         if finite_space and space_size <= 1:
             search = GridSearchCV(
-                rf, param_grid=param_dist, cv=5, scoring=scorer, n_jobs=-1, verbose=0  # ✅ verbose=0
+                rf, param_grid=param_dist, cv=5, scoring=scorer, n_jobs=4, verbose=0  # ✅ verbose=0
             )
         else:
             n_iter = 20 if not finite_space else min(20, space_size)
